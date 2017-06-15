@@ -1,11 +1,37 @@
 import aiohttp
 from bs4 import BeautifulSoup
 import asyncio
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 import json
 
 
 STORE = {}
+
+
+class WebPage:
+    url = None
+    title = None
+    links = []
+    images = []
+    scripts = []
+
+    def __init__(self, url=None, title=None, links=None, images=None, scripts=None):
+        self.url = url
+        self.title = title
+        self.links = [] if links is None else links
+        self.images = [] if images is None else images
+        self.scripts = [] if scripts is None else scripts
+
+    def __str__(self):
+        return json.dumps(self.__dict__)
+
+    @classmethod
+    def from_soup(cls, soup, url):
+        links = [urljoin(url, l["href"]) for l in soup.find_all('a', href=True)]
+        images = [urljoin(url, i["src"]) for i in soup.find_all('img', src=True)]
+        scripts = [urljoin(url, s["src"]) for s in soup.find_all('script', src=True)]
+        title = soup.title.string
+        return cls(url=url, title=title, links=links, images=images, scripts=scripts)
 
 
 async def fetch(url, session):
@@ -14,54 +40,56 @@ async def fetch(url, session):
 
 
 async def soupify(sem, url, session, depth, max_depth):
-
-    # WRITE STORE ENTRY STRAIGHT AWAY
-    if url not in STORE:
-        STORE[url] = None
-
-    if depth >= max_depth:
-        return await asyncio.sleep(0)
-
-    print("{}: {}".format(depth, url))
     try:
         async with sem:
-            foo = await fetch(url, session)
+            page = await fetch(url, session)
 
-        b = BeautifulSoup(foo, "html.parser")
-        STORE[url] = len(str(b))
-        links = b.find_all('a', href=True)
-        potential_targets = (urljoin(url, l["href"]) for l in links)
-        valid_targets = set([
-            t for t in potential_targets
-            if urlparse(t).hostname == urlparse(url).hostname
-            and t not in STORE
-        ])
-        tasks = []
-        for vt in valid_targets:
-            tasks.append(asyncio.ensure_future(soupify(sem, vt, session, depth + 1, max_depth)))
+        print("{}: {}".format(depth, url))
 
-        return await asyncio.gather(*tasks)
+        wb = WebPage.from_soup(BeautifulSoup(page, "html.parser"), url)
+        STORE[url] = wb
 
-    except (asyncio.TimeoutError, aiohttp.client_exceptions.ServerDisconnectedError) as e:
+        # if we haven't hit max_depth yet work our links to recurse over
+        if depth < max_depth:
+            valid_targets = set([t for t in wb.links if url in t and t not in STORE])
+            tasks = [asyncio.ensure_future(soupify(sem, vt, session, depth+1, max_depth)) for vt in valid_targets]
+            return await asyncio.gather(*tasks)
+
+    except (asyncio.TimeoutError, aiohttp.client_exceptions.ServerDisconnectedError, aiohttp.client_exceptions.ClientOSError) as e:
         print(e)
-        STORE[url] = -1
-        return await asyncio.sleep(0)
+        STORE[url] = WebPage(url=url)
 
 
 async def start(loop, url, max_depth):
     depth = 1
-    sem = asyncio.Semaphore(7)
+    sem = asyncio.Semaphore(2)
     async with aiohttp.ClientSession(loop=loop) as session:
         await soupify(sem, url, session, depth, max_depth)
 
 
 def main():
-    url = "https://www.bbc.co.uk/"
-    max_depth = 5
+    url = "https://blog.hartleybrody.com/"
+    max_depth = 2
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start(loop, url, max_depth))
     print("LOOP DONE")
-    print(json.dumps(STORE, indent=4))
+    for url, webpage in STORE.items():
+        print("{}: {}".format(url, webpage.title))
+
+    # Network PLot
+
+    edges = []
+    for url, webpage in STORE.items():
+        for link in webpage.links:
+            edges.append((url, link))
+
+    print(edges)
+    import networkx as nx
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    G = nx.DiGraph()
+    G.add_edges_from(edges)
 
 
 if __name__ == "__main__":
