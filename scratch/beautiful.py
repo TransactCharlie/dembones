@@ -40,6 +40,16 @@ async def fetch(url, session):
 
 
 async def soupify(sem, url, session, depth, max_depth):
+
+    # Because we are scheduled at the mercy of the reactor loop. It's possible that
+    # Some other task is already fetching this webpage. Lets check!
+    if url in STORE:
+        return
+
+    # OK we are the only active task on this reactor - make sure we let other
+    # tasks know that we are processing it before async fetching it
+    STORE[url] = None
+
     try:
         async with sem:
             page = await fetch(url, session)
@@ -69,27 +79,12 @@ async def start(loop, url, max_depth):
 
 def main():
     url = "https://blog.hartleybrody.com/"
-    max_depth = 2
+    max_depth = 3
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start(loop, url, max_depth))
     print("LOOP DONE")
     for url, webpage in STORE.items():
         print("{}: {}".format(url, webpage.title))
-
-    # Network PLot
-
-    edges = []
-    for url, webpage in STORE.items():
-        for link in webpage.links:
-            edges.append((url, link))
-
-    print(edges)
-    import networkx as nx
-    import numpy as np
-    import matplotlib.pyplot as plt
-
-    G = nx.DiGraph()
-    G.add_edges_from(edges)
 
 
 if __name__ == "__main__":
