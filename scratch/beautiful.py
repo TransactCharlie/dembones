@@ -42,12 +42,12 @@ async def fetch(url, session):
 async def soupify(sem, url, session, depth, max_depth):
 
     # Because we are scheduled at the mercy of the reactor loop. It's possible that
-    # Some other task is already fetching this webpage. Lets check!
+    # Some other task is already fetching this page is awaiting the result. Lets check!
     if url in STORE:
         return
 
-    # OK we are the only active task on this reactor - make sure we let other
-    # tasks know that we are processing it before async fetching it
+    # OK we are the only active task on this reactor. Before we await the page
+    # let other potential tasks know that we are working on it.
     STORE[url] = None
 
     try:
@@ -65,21 +65,24 @@ async def soupify(sem, url, session, depth, max_depth):
             tasks = [asyncio.ensure_future(soupify(sem, vt, session, depth+1, max_depth)) for vt in valid_targets]
             return await asyncio.gather(*tasks)
 
-    except (asyncio.TimeoutError, aiohttp.client_exceptions.ServerDisconnectedError, aiohttp.client_exceptions.ClientOSError) as e:
+    # There are a myriad of IO based exceptions that can happen - I don't know all of them.
+    # We want to continue processing other tasks though.
+    except Exception as e:
         print(e)
+        # Upgrade our sentinel entry in the hashmap to at least be the WebPage object
         STORE[url] = WebPage(url=url)
 
 
-async def start(loop, url, max_depth):
+async def start(loop, url, max_depth, semaphore_count=4):
     depth = 1
-    sem = asyncio.Semaphore(2)
+    sem = asyncio.Semaphore(semaphore_count)
     async with aiohttp.ClientSession(loop=loop) as session:
         await soupify(sem, url, session, depth, max_depth)
 
 
 def main():
     url = "https://blog.hartleybrody.com/"
-    max_depth = 3
+    max_depth = 2
     loop = asyncio.get_event_loop()
     loop.run_until_complete(start(loop, url, max_depth))
     print("LOOP DONE")

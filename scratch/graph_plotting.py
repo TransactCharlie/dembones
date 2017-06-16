@@ -1,5 +1,4 @@
 import networkx as nx
-import plotly.plotly as py
 from plotly.graph_objs import *
 import plotly.offline as po
 
