@@ -1,0 +1,18 @@
+sudo: required
+services:
+- docker
+script:
+- docker build -t $REPO:$COMMIT .
+after_success:
+- export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH;
+  fi`
+- docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+- docker tag $REPO:$COMMIT $REPO:$TAG
+- docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
+- docker push $REPO
+env:
+  global:
+  - COMMIT=${TRAVIS_COMMIT::8}
+  - REPO=transactcharlie/dembones
+  - secure: SmszCzIKjXc+2evX1A/ClrGjj3zJcOIHnFDXRo1eXYHT9sLXCruRR+WkqglmLPDsoZZN0CeMhHCUheVv+4fSpTojXt/O3XjrbVo3gIydaBhu31OsvOzlXXQOTdw9zEE0sztwp8SUOQTws4rCGa+WBQ3RbpdaWxAyUCfRfL85NHu0JPHP/ZkDRvhM/sJC6pBbobu9YImxWzv6CGEhjru51XGB2cnrBkjbUpUSm9loTiRRCVSwPhhIdVcw3DBIqMu6sgb82MI3vPES2w3H0N3TBwApGzHdoICVNvHWI4eDuaSPGUYWCy8m9OITaLsYy4lT/EgIxmN5UWn+mGK+GRURno78c391NtQq955tJHvIvFZ7U5vQ/NCgNjM+a+jKdyptruhDfrNRzbdv+4HphnZOvj1cFOcB7n5Anvsglu5thZREHfThEsPm0aX9szOjnmfaejx9iRMUFKiLfxT3ZlWmJs2Wx2w/hGACg93NwokhrE+6cd1Q8cHo6FJ0UYRw8JUF9AHvKUtnxDjZz6AuldXi6ro9rZvqOy4YsxaOkw13i5FKOOcdJv5OOgmlg36dKBwxP5mnRk4KwjjeZELCCPt4xh5e8fCaLokf09+9XPHmKEqhqJbbHQuh8QcIJ/WIybHfZQYWzBONwfyF37h4H65LxyF7Ev/0nkNY8/N0+hOSabw=
+  - secure: fR9jk5pJ4koqc+UGwLGXooB86O2pU/vi+MmMQqT/MbObxeWJX4XuQKMXBNAGxlblMtpdFiQOAcgvdniu94Y5VW2qeoVYl5vYxJuIs5ztoz7F6bqMxzsEwkHJU66LKddpEdNFlVYTtpdcSoHUBIJytAav+5k5GA7JR9kkSL7y4i8H4XPIANzQYUmlM2NF9CHQwwahdTxA+esmdJE27jVeHa0CZ3j2Evs6Gy5WiSbuCQMvgGqW5v5pWlm70qCKdu/0w5gMCp/BryRdvEGhDqnlED28QxGknLGfJjiDqrK5h8VPl0IY8nfIlCMS2s8Ud/pSD4HxMuFuhuCafyAMJO9d3E4xoJFQSUFSLAyrkTU5F9XfPhz3irrQ7nFJZUMULkZdrdn32a6raLavU1vv7Ps8M1ha6vNHiejz6R6jdQEZMVY6N2EEv7eIOFB54s7cteZ/pCz7gP0Ph41a9wEIlszRNZEZP2xNVMx0l36ZRFX9zfjSwvUIciInNM/x/r7acBhUxZQTTwA1vg8OCODTslATMfEvY9lfaU0LUoOTMUGmweIskW1lp53YgFPTP7EhAK8L1KzuwcJqqOYFyOJeNe4mKOgo1L4E2JqFtEE/DKccd4nRwIdA0LaS3zZhuUsWeswL6gJdtDuq/fpoPcVqXWUss4+3hMh7V8ddrJL3j5CQsf4=
