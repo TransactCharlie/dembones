@@ -2,10 +2,9 @@ import aiohttp
 from bs4 import BeautifulSoup
 import asyncio
 from dembones.webpage import WebPage
-import logging
 import dembones.urlvalidators as uv
 
-
+import logging
 log = logging.getLogger(__name__)
 
 
@@ -26,7 +25,7 @@ class Collector:
             return await r.read()
 
     async def recurse_collect(self, url, session, depth):
-        """Fetch url and Soupify it. Then work out which links we need to recurse."""
+        """Fetch url and Soup it. Then work out which links we need to recurse."""
 
         # Because we are scheduled at the mercy of the reactor loop. It's possible that
         # Some other task is already fetching this page is awaiting the result. Lets check!
@@ -43,13 +42,13 @@ class Collector:
 
             log.debug("Depth {}: Url {}".format(depth, url))
 
-            wb = WebPage.from_soup(BeautifulSoup(page, "html.parser"), url)
-            self.url_hash[url] = wb
+            wp = WebPage.from_soup(BeautifulSoup(page, "html.parser"), url)
+            self.url_hash[url] = wp
 
             # if we haven't hit max_depth yet work out links to recurse over
             if depth < self.max_depth:
                 valid_targets = set([
-                    t for t in wb.links
+                    t for t in wp.links
                     if t not in self.url_hash
                     and self.validate_targets(url, t)
                 ])
@@ -74,3 +73,4 @@ class Collector:
         log.debug("Collector Event Loop Start")
         loop.run_until_complete(self.start_recursive_collect(url, loop))
         log.debug("Collector Event Loop Exit")
+        return {url: wp.to_dict() for url, wp in self.url_hash.items()}

@@ -2,9 +2,16 @@ from dembones.collector import Collector
 import dembones.urlvalidators as uv
 import logging
 import click
+import json
 
 
-def initialise_logger(level):
+def initialise_logger(verbosity):
+    level = logging.ERROR
+    if verbosity >= 2:
+        level = logging.DEBUG
+    if verbosity == 1:
+        level = logging.INFO
+
     logging.basicConfig(level=level)
     return logging.getLogger("DEMBONES")
 
@@ -26,16 +33,19 @@ def dembones():
 @click.option("-md", "--max-depth", help="Maximum recursion when collecting URLS", default=3)
 @click.option("-tv", "--target-validator", help="How to decide if we should recurse a link",
               type=click.Choice(["same-domain", "same-domain-up-path"]), default="same-domain")
-@click.option("-v", "--verbose", help="Enable Verbose Mode", is_flag=True)
+@click.option("-v", "--verbose", help="Verbosity (-v, -vv, -vvv)", count=True)
 @click.argument("url")
 def scrape(max_concurrency, max_depth, target_validator, verbose, url):
-    log = initialise_logger(logging.DEBUG if verbose else logging.INFO)
+    log = initialise_logger(verbose)
 
     validate = determine_validator(target_validator)
 
     log.info("Starting Collection")
     c = Collector(max_concurrent_fetches=max_concurrency, max_depth=max_depth, target_validator=validate)
-    c.start_collection(url)
+    data = c.start_collection(url)
+
+    # TODO -- make the sitemap better. Check the scratch/ folder for ideas about using plotly to make a navigable graph
+    print(json.dumps(data, indent=4))
 
 
 # Simple helper for invoking in pycharm / ide for debugger
