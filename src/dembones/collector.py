@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import asyncio
 from dembones.webpage import WebPage
 import logging
+import dembones.urlvalidators as uv
 
 
 log = logging.getLogger(__name__)
@@ -10,12 +11,14 @@ log = logging.getLogger(__name__)
 
 class Collector:
 
-    PageMap = {}
+    url_hash = {}
 
-    def __init__(self, max_concurrent_fetches=3, max_depth=3, fetch_timeout=5):
+    def __init__(self, max_concurrent_fetches=3, max_depth=3, fetch_timeout=5,
+                 target_validator=uv.same_domain_up_path):
         self.semaphore = asyncio.Semaphore(max_concurrent_fetches)
         self.fetch_timeout = fetch_timeout
         self.max_depth = max_depth
+        self.validate_targets = target_validator
 
     async def fetch(self, url, session):
         """Fetch url using session."""
@@ -27,12 +30,12 @@ class Collector:
 
         # Because we are scheduled at the mercy of the reactor loop. It's possible that
         # Some other task is already fetching this page is awaiting the result. Lets check!
-        if url in self.PageMap:
+        if url in self.url_hash:
             return
 
         # OK we are the only active task on this reactor. Before we await the page
         # let other potential tasks know that we are working on it.
-        self.PageMap[url] = None
+        self.url_hash[url] = None
 
         try:
             async with self.semaphore:
@@ -41,11 +44,15 @@ class Collector:
             log.debug("Depth {}: Url {}".format(depth, url))
 
             wb = WebPage.from_soup(BeautifulSoup(page, "html.parser"), url)
-            self.PageMap[url] = wb
+            self.url_hash[url] = wb
 
             # if we haven't hit max_depth yet work out links to recurse over
             if depth < self.max_depth:
-                valid_targets = set([t for t in wb.links if url in t and t not in self.PageMap])
+                valid_targets = set([
+                    t for t in wb.links
+                    if t not in self.url_hash
+                    and self.validate_targets(url, t)
+                ])
                 tasks = [self.recurse_collect(vt, session, depth+1) for vt in valid_targets]
                 return await asyncio.gather(*tasks)
 
@@ -54,7 +61,7 @@ class Collector:
         except Exception as e:
             log.error(e)
             # Upgrade our sentinel entry in the hashmap to at least be the WebPage object
-            self.PageMap[url] = WebPage(url=url)
+            self.url_hash[url] = WebPage(url=url)
 
     async def start_recursive_collect(self, url, loop):
         """Start our collection using the event loop (loop)"""
