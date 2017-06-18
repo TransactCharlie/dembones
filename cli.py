@@ -21,22 +21,27 @@ def dembones():
     pass
 
 
+@dembones.command()
 @click.option("-mc,", "--max-concurrency", help="Max fetch tasks at any one time", default=5)
 @click.option("-md", "--max-depth", help="Maximum recursion when collecting URLS", default=3)
-@click.option("-vt", "--validate-targets", help="How to decide if we should recurse a link",
+@click.option("-tv", "--target-validator", help="How to decide if we should recurse a link",
               type=click.Choice(["same-domain", "same-domain-up-path"]), default="same-domain")
 @click.option("-v", "--verbose", help="Enable Verbose Mode", is_flag=True)
 @click.argument("url")
-def scrape(mc, md, vt, v, url):
-    log = initialise_logger(logging.DEBUG if v else logging.INFO)
+def scrape(max_concurrency, max_depth, target_validator, verbose, url):
+    log = initialise_logger(logging.DEBUG if verbose else logging.INFO)
 
-    validate = determine_validator(vt)
+    validate = determine_validator(target_validator)
 
     log.info("Starting Collection")
-    c = Collector(max_concurrent_fetches=mc, max_depth=md, target_validator=validate)
+    c = Collector(max_concurrent_fetches=max_concurrency, max_depth=max_depth, target_validator=validate)
     c.start_collection(url)
 
 
 # Simple helper for invoking in pycharm / ide for debugger
-if __name__ == "__main__":
+def _debug_ide():
     scrape(5, 3, "same-domain", True, "https://blog.hartleybrody.com/")
+
+
+if __name__ == "__main__":
+    dembones()
