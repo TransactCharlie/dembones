@@ -3,6 +3,7 @@ services:
 - docker
 script:
 - docker build -t $REPO:$COMMIT .
+- docker run $REPO:$COMMIT test
 after_success:
 - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH;
   fi`
