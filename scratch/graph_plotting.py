@@ -1,29 +1,41 @@
 import networkx as nx
 from plotly.graph_objs import *
 import plotly.offline as po
+from collections import defaultdict
 
 
 DATA = {
-    "foo": {"links": ["bar", "bar", "woo"]},
-    "bar": {"links": ["woo"]},
-    "woo": {"links": ["zoo", "NA"]},
-    "zoo": {"links": []}
+    "foo": {"level": 1, "links": ["bar", "bar", "woo"]},
+    "bar": {"level": 2, "links": ["woo"]},
+    "woo": {"level": 2, "links": ["zoo", "NA"]},
+    "zoo": {"level": 3, "links": ["foo"]},
+    "NA": {"level": 4, "links": []}
 }
 
 
 def main():
 
     G = nx.MultiDiGraph()
+    shells = defaultdict(list)
 
     for node, details in DATA.items():
         G.add_node(node)
+        shells[details["level"]].append(node)
+
         for link in details["links"]:
             G.add_edge(node, link)
 
+    shell_list = []
+    for k in sorted(shells.keys()):
+        shell_list.append(shells[k])
+
+    print(shell_list)
     print("Nodes: {}".format(G.number_of_nodes()))
     print("Edges: {}".format(G.number_of_edges()))
     pos = nx.fruchterman_reingold_layout(G)
+    pos = nx.shell_layout(G, shell_list)
 
+    print(pos)
     """
     dmin = 1
     ncenter = 0
@@ -40,15 +52,18 @@ def main():
     edge_trace = Scatter(
         x=[],
         y=[],
+        text=[],
         line=Line(width=0.5, color='#888'),
-        hoverinfo='none',
-        mode='lines+markers')
+        hoverinfo='text',
+        mode='lines+markers'
+        )
 
     for edge in G.edges():
         x0, y0 = pos[edge[0]]
         x1, y1 = pos[edge[1]]
-        edge_trace['x'] += [x0, x1, None]
-        edge_trace['y'] += [y0, y1, None]
+        edge_trace['x'] += [x0, x1]
+        edge_trace['y'] += [y0, y1]
+        edge_trace["text"].append("TODO")
 
     node_trace = Scatter(
         x=[],
@@ -61,7 +76,7 @@ def main():
             # colorscale options
             # 'Greys' | 'Greens' | 'Bluered' | 'Hot' | 'Picnic' | 'Portland' |
             # Jet' | 'RdBu' | 'Blackbody' | 'Earth' | 'Electric' | 'YIOrRd' | 'YIGnBu'
-            colorscale='YIGnBu',
+            colorscale='Electric',
             reversescale=True,
             color=[],
             size=10,
@@ -77,11 +92,12 @@ def main():
         x, y = pos[node]
         node_trace['x'].append(x)
         node_trace['y'].append(y)
+        node_trace["text"].append(node)
 
     for node, adjacencies in enumerate(G.adjacency_list()):
         node_trace['marker']['color'].append(len(adjacencies))
         node_info = '# of connections: ' + str(len(adjacencies))
-        node_trace['text'].append(node_info)
+        node_trace['text'][node] += "\n{}".format(node_info)
 
     fig = Figure(data=Data([edge_trace, node_trace]),
                  layout=Layout(
