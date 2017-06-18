@@ -72,7 +72,21 @@ Fork Dembones in github and clone your repo
 git clone git@github.com:TransactCharlie/dembones.git 
 cd dembones
 virtualenv env --no-site-packages --python=python3.6
-PYTHONPATH=src pytest tests -v
+PYTHONPATH=src python cli test
 ```
 
+The src folder requires to be in the PYTHONPATH env var. This is so that you can run the unit tests against an installed version of dembones in the future independently of the source code.
 
+## Build Status
+[![Build Status](https://travis-ci.org/TransactCharlie/dembones.svg?branch=master)](https://travis-ci.org/TransactCharlie/dembones)
+[![](https://images.microbadger.com/badges/image/transactcharlie/dembones.svg)](https://microbadger.com/images/transactcharlie/dembones "Get your own image badge on microbadger.com")
+[![](https://images.microbadger.com/badges/version/transactcharlie/dembones.svg)](https://microbadger.com/images/transactcharlie/dembones "Get your own version badge on microbadger.com")
+
+* Travis-ci.org builds a docker image on any push and tags master branch pulls with the :latest tag. [View Travis Build History](https://travis-ci.org/TransactCharlie/dembones/builds)
+* The DockerHub repository is [transactcharlie/dembones](https://hub.docker.com/r/transactcharlie/dembones/)
+* Image details can be [found on Microbadger](https://microbadger.com/images/transactcharlie/dembones)
+
+## TODO
+* Visualisation of the collected websites as a directed graph using networkx and plotly. (See the scratch/graph_plotting folder for a POC)
+* Exponential Backoff / Jitter during collection
+* Avoid Bot Detection / Robots.txt
