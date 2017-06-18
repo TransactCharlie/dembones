@@ -4,12 +4,12 @@ from urllib.parse import urljoin
 
 class WebPage:
     """Models what's important to us about a web page"""
-    title = None
+    title = ""
     links = []
     images = []
     scripts = []
 
-    def __init__(self, title=None, links=None, images=None, scripts=None):
+    def __init__(self, title="", links=None, images=None, scripts=None):
         self.title = title
         self.links = [] if links is None else links
         self.images = [] if images is None else images
@@ -27,6 +27,9 @@ class WebPage:
         links = [urljoin(url, l["href"]) for l in soup.find_all('a', href=True)]
         images = [urljoin(url, i["src"]) for i in soup.find_all('img', src=True)]
         scripts = [urljoin(url, s["src"]) for s in soup.find_all('script', src=True)]
-        title = soup.title.string
+        try:
+            title = soup.title.string
+        except AttributeError:
+            title = ""
 
         return cls(title=title, links=links, images=images, scripts=scripts)

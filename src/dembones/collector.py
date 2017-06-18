@@ -22,7 +22,9 @@ class Collector:
     async def fetch(self, url, session):
         """Fetch url using session."""
         async with session.get(url, timeout=self.fetch_timeout) as r:
-            return await r.read()
+            r = await r.read()
+            log.debug(r)
+            return r
 
     async def recurse_collect(self, url, session, depth):
         """Fetch url and Soup it. Then work out which links we need to recurse."""
@@ -66,7 +68,7 @@ class Collector:
         except Exception as e:
             log.error(e)
             # Upgrade our sentinel entry in the hashmap to at least be the WebPage object
-            self.url_hash[url] = WebPage(url=url)
+            self.url_hash[url] = WebPage()
 
     async def start_recursive_collect(self, url, loop):
         """Start our collection using the event loop (loop)"""
