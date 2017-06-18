@@ -29,9 +29,15 @@ def dembones():
 
 
 @dembones.command()
-@click.option("-mc,", "--max-concurrency", help="Max fetch tasks at any one time", default=5)
-@click.option("-md", "--max-depth", help="Maximum recursion when collecting URLS", default=3)
-@click.option("-tv", "--target-validator", help="How to decide if we should recurse a link",
+def test():
+    import pytest
+    pytest.main(["-v", "tests/"])
+
+
+@dembones.command()
+@click.option("-c", "--max-concurrency", help="Max fetch tasks at any one time", default=5)
+@click.option("-d", "--max-depth", help="Maximum recursion when collecting URLS", default=3)
+@click.option("-t", "--target-validator", help="How to decide if we should recurse a link",
               type=click.Choice(["same-domain", "same-domain-up-path"]), default="same-domain")
 @click.option("-v", "--verbose", help="Verbosity (-v, -vv, -vvv)", count=True)
 @click.argument("url")

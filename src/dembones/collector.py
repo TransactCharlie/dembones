@@ -42,7 +42,7 @@ class Collector:
             async with self.semaphore:
                 page = await self.fetch(url, session)
 
-            log.debug("Depth {}: Url {}".format(depth, url))
+            log.info("Collected: Depth {}: Url {}".format(depth, url))
 
             wp = WebPage.from_soup(BeautifulSoup(page, "html.parser"), url)
             self.url_hash[url] = wp
