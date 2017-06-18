@@ -1,5 +1,5 @@
 from dembones.collector import Collector
-import dembones.urlvalidators as uv
+import dembones.urltools as uv
 import logging
 import click
 import json
@@ -18,9 +18,9 @@ def initialise_logger(verbosity):
 
 def determine_validator(vt):
     if vt == "same-domain":
-        return uv.same_domain
+        return uv.validate_same_domain
     if vt == "same-domain-up-path":
-        return uv.same_domain_up_path
+        return uv.validate_same_domain_up_path
 
 
 @click.group()

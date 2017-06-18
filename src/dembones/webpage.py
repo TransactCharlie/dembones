@@ -28,4 +28,5 @@ class WebPage:
         images = [urljoin(url, i["src"]) for i in soup.find_all('img', src=True)]
         scripts = [urljoin(url, s["src"]) for s in soup.find_all('script', src=True)]
         title = soup.title.string
+
         return cls(title=title, links=links, images=images, scripts=scripts)

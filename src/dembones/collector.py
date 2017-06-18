@@ -2,7 +2,7 @@ import aiohttp
 from bs4 import BeautifulSoup
 import asyncio
 from dembones.webpage import WebPage
-import dembones.urlvalidators as uv
+import dembones.urltools as ut
 
 import logging
 log = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ class Collector:
     url_hash = {}
 
     def __init__(self, max_concurrent_fetches=3, max_depth=3, fetch_timeout=5,
-                 target_validator=uv.same_domain_up_path):
+                 target_validator=ut.validate_same_domain_up_path):
         self.semaphore = asyncio.Semaphore(max_concurrent_fetches)
         self.fetch_timeout = fetch_timeout
         self.max_depth = max_depth
@@ -47,11 +47,17 @@ class Collector:
 
             # if we haven't hit max_depth yet work out links to recurse over
             if depth < self.max_depth:
+                # Stripped target generator
+                stripped_targets = (ut.strip_fragment_identifier(t) for t in wp.links)
+
+                # Build a set of target urls that obey our restrictions
                 valid_targets = set([
-                    t for t in wp.links
-                    if t not in self.url_hash
-                    and self.validate_targets(url, t)
+                    st for st in stripped_targets
+                    if st not in self.url_hash
+                    and self.validate_targets(url, st)
                 ])
+
+                # Generate Async tasks for the next depth level
                 tasks = [self.recurse_collect(vt, session, depth+1) for vt in valid_targets]
                 return await asyncio.gather(*tasks)
 

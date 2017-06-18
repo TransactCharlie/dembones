@@ -1,5 +1,6 @@
 import networkx as nx
 from plotly.graph_objs import *
+import plotly.figure_factory as ff
 import plotly.offline as po
 from collections import defaultdict
 
@@ -111,7 +112,18 @@ def main():
                      yaxis=YAxis(showgrid=False, zeroline=False, showticklabels=False))
                     )
 
-    po.plot(fig, filename='networkx.html')
+    data_matrix = [['Country', 'Year', 'Population'],
+                   ['United States', 2000, 282200000],
+                   ['Canada', 2000, 27790000],
+                   ['United States', 2005, 295500000],
+                   ['Canada', 2005, 32310000],
+                   ['United States', 2010, 309000000],
+                   ['Canada', 2010, 34000000]]
+
+    table = ff.create_table(data_matrix)
+
+
+    po.plot(fig, table, filename='networkx.html')
 
 if __name__ == "__main__":
     main()
